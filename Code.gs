@@ -236,6 +236,7 @@ function seedDefaultConfigIfMissing(configSheet) {
     ['APP_NOMBRE', 'Control de Produccion Taller', 'Nombre visible del sistema', 'SI'],
     ['EMPRESA_NOMBRE', 'Taller de Cilindros', 'Razon social u operativa', 'SI'],
     ['ZONA_HORARIA', Session.getScriptTimeZone(), 'Zona horaria operativa', 'SI'],
+    ['INVENTARIO_BASE_INICIAL', '0', 'Saldo base usado cuando no existe historial previo', 'SI'],
     ['DUPLICADO_VENTANA_SEGUNDOS', '90', 'Ventana para prevenir doble registro', 'SI'],
     ['MAX_CANTIDAD_POR_REGISTRO', '500', 'Limite superior por captura', 'SI'],
     ['VERSION_APP', '1.0.0', 'Version actual de la solucion', 'SI']
@@ -388,6 +389,7 @@ function getDailyDashboard(requestedMonthKey) {
   const currentMonthKey = today.slice(0, 7);
   const monthKey = isValidMonthKey(requestedMonthKey) ? requestedMonthKey : currentMonthKey;
   const activeActivities = getActiveActivities();
+  const inventoryBase = Number(getConfigValue('INVENTARIO_BASE_INICIAL', '0')) || 0;
 
   const byActivity = {};
   const byActivityMonth = {};
@@ -400,6 +402,7 @@ function getDailyDashboard(requestedMonthKey) {
   const byShiftMonth = { Matutino: 0, Vespertino: 0, Nocturno: 0 };
   const byOperatorMap = {};
   const byOperatorMonthMap = {};
+  const netByDate = {};
 
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.production);
   const lastRow = sheet.getLastRow();
@@ -410,6 +413,7 @@ function getDailyDashboard(requestedMonthKey) {
       monthKey: monthKey,
       totalMonth: 0,
       totalDay: 0,
+      balanceDay: inventoryBase,
       byActivityMonth: byActivityMonth,
       byShiftMonth: byShiftMonth,
       byOperatorMonth: [],
@@ -425,12 +429,27 @@ function getDailyDashboard(requestedMonthKey) {
 
   data.forEach(function (row) {
     const rowDateKey = normalizeDateKeyFromRow(row, timezone);
+    const activity = String(row[5] || '');
+    const qty = Number(row[6] || 0);
+
+    if (rowDateKey) {
+      if (!netByDate[rowDateKey]) {
+        netByDate[rowDateKey] = 0;
+      }
+
+      const normalizedActivity = normalizeActivityName(activity);
+      if (normalizedActivity === 'recepcion de cilindros') {
+        netByDate[rowDateKey] += qty;
+      } else if (normalizedActivity === 'entrega de cilindros') {
+        netByDate[rowDateKey] -= qty;
+      }
+    }
 
     if (rowDateKey && rowDateKey.slice(0, 7) === monthKey) {
       const monthOperator = String(row[3] || 'Sin operador');
       const monthShift = String(row[4] || '');
-      const monthActivity = String(row[5] || '');
-      const monthQty = Number(row[6] || 0);
+      const monthActivity = activity;
+      const monthQty = qty;
 
       totalMonth += monthQty;
 
@@ -454,8 +473,6 @@ function getDailyDashboard(requestedMonthKey) {
 
     const operator = String(row[3] || 'Sin operador');
     const shift = String(row[4] || '');
-    const activity = String(row[5] || '');
-    const qty = Number(row[6] || 0);
 
     totalDay += qty;
 
@@ -472,6 +489,16 @@ function getDailyDashboard(requestedMonthKey) {
     }
     byOperatorMap[operator] += qty;
   });
+
+  const sortedDates = Object.keys(netByDate).sort();
+  let openingToday = inventoryBase;
+  sortedDates.forEach(function (dateKey) {
+    if (dateKey < today) {
+      openingToday += netByDate[dateKey];
+    }
+  });
+
+  const balanceDay = openingToday + (netByDate[today] || 0);
 
   const byOperator = Object.keys(byOperatorMap)
     .map(function (operator) {
@@ -500,6 +527,7 @@ function getDailyDashboard(requestedMonthKey) {
     monthKey: monthKey,
     totalMonth: totalMonth,
     totalDay: totalDay,
+    balanceDay: balanceDay,
     byActivityMonth: byActivityMonth,
     byShiftMonth: byShiftMonth,
     byOperatorMonth: byOperatorMonth,
@@ -564,6 +592,15 @@ function normalizeDateKeyFromAny(value, timezone) {
   }
 
   return '';
+}
+
+function normalizeActivityName(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function updateDashboardSnapshot() {

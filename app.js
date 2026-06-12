@@ -8,7 +8,7 @@
 */
 
 // Reemplazar con la URL del despliegue de Apps Script (Web App).
-const API_BASE_URL = "https://script.google.com/macros/s/AKfycbwwtLWjQ7FeO8ecm0_Rljtt6svRw-8Q3wUy8Hdo0lc3K4byUlHCGiXjQpXlJc4yiEyH/exec";
+const API_BASE_URL = "https://script.google.com/macros/s/AKfycbzcQrhpGk9M0NKrObPoNZWDPIW9SZirvDTh6GxkrG2lxEJ0lcGu4iUe6vH82GsVDFrb/exec";
 
 const APP_STATE = {
   operators: [],
@@ -26,6 +26,7 @@ const APP_STATE = {
     monthKey: "",
     totalMonth: 0,
     totalDay: 0,
+    balanceDay: 0,
     byActivityMonth: {},
     byShiftMonth: {},
     byOperatorMonth: [],
@@ -57,6 +58,7 @@ const DOM = {
   refreshDashboardButton: document.getElementById("refreshDashboardButton"),
   kpiTotalDay: document.getElementById("kpiTotalDay"),
   kpiTotalMonth: document.getElementById("kpiTotalMonth"),
+  kpiBalanceDay: document.getElementById("kpiBalanceDay"),
   kpiMonthLabel: document.getElementById("kpiMonthLabel"),
   activityListDay: document.getElementById("activityListDay"),
   shiftListDay: document.getElementById("shiftListDay"),
@@ -310,6 +312,7 @@ async function loadDashboard() {
     APP_STATE.dashboard.byShiftMonth = data.byShiftMonth || {};
     APP_STATE.dashboard.byOperatorMonth = data.byOperatorMonth || [];
     APP_STATE.dashboard.totalDay = data.totalDay || 0;
+    APP_STATE.dashboard.balanceDay = data.balanceDay || 0;
     APP_STATE.dashboard.byActivity = data.byActivity || {};
     APP_STATE.dashboard.byShift = data.byShift || {};
     APP_STATE.dashboard.byOperator = data.byOperator || [];
@@ -326,6 +329,7 @@ async function loadDashboard() {
 function renderDashboard() {
   DOM.kpiTotalDay.textContent = String(APP_STATE.dashboard.totalDay);
   DOM.kpiTotalMonth.textContent = String(APP_STATE.dashboard.totalMonth);
+  DOM.kpiBalanceDay.textContent = String(APP_STATE.dashboard.balanceDay);
   DOM.kpiMonthLabel.textContent = APP_STATE.dashboard.monthKey
     ? `Periodo ${APP_STATE.dashboard.monthKey}`
     : "Periodo --";

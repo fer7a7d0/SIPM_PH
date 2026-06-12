@@ -264,7 +264,7 @@ textarea:focus {
   margin-top: 14px;
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .kpi-card {
@@ -281,6 +281,11 @@ textarea:focus {
 .kpi-card.month-highlight {
   background: #eef5ff;
   border-left-color: #2f6fed;
+}
+
+.kpi-card.balance-highlight {
+  background: #fff7e8;
+  border-left-color: #d97706;
 }
 
 .section-title {
