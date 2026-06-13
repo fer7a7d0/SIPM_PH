@@ -662,6 +662,12 @@ function normalizeDateKeyFromAny(value, timezone) {
     return '';
   }
 
+  // Si ya viene en formato yyyy-MM-dd (con o sin hora), conserva la fecha textual.
+  const ymdMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T].*)?$/);
+  if (ymdMatch) {
+    return ymdMatch[1] + '-' + ymdMatch[2] + '-' + ymdMatch[3];
+  }
+
   // Caso ISO o timestamp parseable por Date.
   const tryNative = new Date(text.replace(' ', 'T'));
   if (!isNaN(tryNative.getTime())) {
@@ -678,6 +684,52 @@ function normalizeDateKeyFromAny(value, timezone) {
   }
 
   return '';
+}
+
+function normalizeTimeValue(value, timezone) {
+  if (!value) {
+    return '';
+  }
+
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+    return Utilities.formatDate(value, timezone, 'HH:mm:ss');
+  }
+
+  const text = String(value).trim();
+  const hhmmss = text.match(/^(\d{2}):(\d{2}):(\d{2})$/);
+  if (hhmmss) {
+    return text;
+  }
+
+  const nativeDate = new Date(text.replace(' ', 'T'));
+  if (!isNaN(nativeDate.getTime())) {
+    return Utilities.formatDate(nativeDate, timezone, 'HH:mm:ss');
+  }
+
+  return text;
+}
+
+function normalizeTimestampValue(value, timezone) {
+  if (!value) {
+    return '';
+  }
+
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+    return Utilities.formatDate(value, timezone, 'yyyy-MM-dd HH:mm:ss');
+  }
+
+  const text = String(value).trim();
+  const ymdhms = text.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})$/);
+  if (ymdhms) {
+    return ymdhms[1] + ' ' + ymdhms[2];
+  }
+
+  const nativeDate = new Date(text.replace(' ', 'T'));
+  if (!isNaN(nativeDate.getTime())) {
+    return Utilities.formatDate(nativeDate, timezone, 'yyyy-MM-dd HH:mm:ss');
+  }
+
+  return text;
 }
 
 function normalizeActivityName(value) {
@@ -732,6 +784,12 @@ function getRecordsByDate(dateString) {
     throw new Error('Fecha requerida para la consulta');
   }
 
+  const timezone = Session.getScriptTimeZone();
+  const requestedDateKey = normalizeDateKeyFromAny(dateString, timezone);
+  if (!requestedDateKey) {
+    throw new Error('Fecha invalida para la consulta');
+  }
+
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.production);
   const lastRow = sheet.getLastRow();
 
@@ -742,20 +800,24 @@ function getRecordsByDate(dateString) {
   const data = sheet.getRange(2, 1, lastRow - 1, 13).getValues();
   return data
     .filter(function (row) {
-      return String(row[1]) === String(dateString);
+      return normalizeDateKeyFromRow(row, timezone) === requestedDateKey;
     })
     .map(function (row) {
+      const dateKey = normalizeDateKeyFromRow(row, timezone);
+      const timeValue = normalizeTimeValue(row[2], timezone);
+      const timestampValue = normalizeTimestampValue(row[9], timezone);
+
       return {
         id: row[0],
-        date: row[1],
-        time: row[2],
+        date: dateKey,
+        time: timeValue,
         operator: row[3],
         shift: row[4],
         activity: row[5],
         quantity: row[6],
         observations: row[7],
         captureUser: row[8],
-        timestampServer: row[9],
+        timestampServer: timestampValue,
         duplicateKey: row[10],
         sourceDevice: row[11],
         status: row[12]

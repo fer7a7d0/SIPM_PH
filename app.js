@@ -8,7 +8,7 @@
 */
 
 // Reemplazar con la URL del despliegue de Apps Script (Web App).
-const API_BASE_URL = "https://script.google.com/macros/s/AKfycbzyF8JfqtjwSO8cgSMoYOJPRbgvoDPO7X-0pFq_Lj6mlrOKA6sIV6mRcWIpycj0i2ia/exec";
+const API_BASE_URL = "https://script.google.com/macros/s/AKfycbxRtE9xjOnIjt8ft6JGRHmCMS64Xd8eAt8_IRADwkim4l0ymMKUcU7Krwh60n8e0cHr/exec";
 
 const APP_STATE = {
   operators: [],
@@ -89,7 +89,7 @@ function initializeDashboardFilters() {
 
 function bindEvents() {
   DOM.productionForm.addEventListener("submit", onSubmitProduction);
-  DOM.downloadCsvButton.addEventListener("click", exportCsvFromLocalRecords);
+  DOM.downloadCsvButton.addEventListener("click", exportDailyCsvFromServer);
   DOM.tabCapture.addEventListener("click", () => activateScreen("capture"));
   DOM.tabDashboard.addEventListener("click", () => {
     activateScreen("dashboard");
@@ -102,6 +102,34 @@ function bindEvents() {
 function getCurrentMonthKey() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatDateKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function shiftDateKey(dateKey, deltaDays) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateKey || ""))) {
+    return "";
+  }
+
+  const parts = dateKey.split("-").map(Number);
+  const shifted = new Date(parts[0], parts[1] - 1, parts[2] + deltaDays);
+  return formatDateKey(shifted);
+}
+
+function buildExportDateCandidates(serverDate) {
+  const localDate = formatDateKey(new Date());
+  const ordered = [
+    serverDate,
+    localDate,
+    shiftDateKey(serverDate, -1),
+    shiftDateKey(serverDate, 1),
+    shiftDateKey(localDate, -1),
+    shiftDateKey(localDate, 1)
+  ].filter((value) => Boolean(value));
+
+  return [...new Set(ordered)];
 }
 
 function startClock() {
@@ -424,10 +452,12 @@ async function callApi(action, payload) {
   return body.data;
 }
 
-function exportCsvFromLocalRecords() {
+function exportCsvFromLocalRecords(suppressMessage) {
   if (APP_STATE.localRecords.length === 0) {
-    setFormMessage("No hay registros locales para exportar.", "error");
-    return;
+    if (!suppressMessage) {
+      setFormMessage("No hay registros locales para exportar.", "error");
+    }
+    return false;
   }
 
   const headers = [
@@ -439,10 +469,7 @@ function exportCsvFromLocalRecords() {
     "Actividad",
     "Cantidad",
     "Observaciones",
-    "Usuario captura",
-    "Clave duplicado",
-    "Origen dispositivo",
-    "Guardado local"
+    "Usuario captura"
   ];
 
   const lines = APP_STATE.localRecords.map((row) => [
@@ -454,23 +481,96 @@ function exportCsvFromLocalRecords() {
     row.activity,
     row.quantity,
     sanitizeCsv(row.observations),
-    sanitizeCsv(row.captureUser),
-    sanitizeCsv(row.duplicateKey),
-    sanitizeCsv(row.sourceDevice),
-    row.savedAt
+    sanitizeCsv(row.captureUser)
   ]);
 
+  const fileDate = formatDateKey(new Date());
+  downloadCsvFile(headers, lines, `produccion_local_${fileDate}.csv`);
+
+  if (!suppressMessage) {
+    setFormMessage("Archivo CSV local generado correctamente.", "success");
+  }
+  return true;
+}
+
+async function exportDailyCsvFromServer() {
+  DOM.downloadCsvButton.disabled = true;
+  setFormMessage("Generando CSV diario...", "");
+
+  try {
+    const dashboard = await callApi("getDailyDashboard", { monthKey: DOM.monthSelector.value || "" });
+    const serverDate = dashboard.date || formatDateKey(new Date());
+    const candidateDates = buildExportDateCandidates(serverDate);
+
+    let records = [];
+    let matchedDate = "";
+
+    for (const dateKey of candidateDates) {
+      const attempt = await callApi("getRecordsByDate", { date: dateKey });
+      if (Array.isArray(attempt) && attempt.length > 0) {
+        records = attempt;
+        matchedDate = dateKey;
+        break;
+      }
+    }
+
+    if (!records || records.length === 0) {
+      setFormMessage(`No hay registros del dia para exportar. Fechas consultadas: ${candidateDates.join(", ")}.`, "error");
+      return;
+    }
+
+    const headers = [
+      "ID",
+      "Fecha",
+      "Hora",
+      "Operador",
+      "Turno",
+      "Actividad",
+      "Cantidad",
+      "Observaciones",
+      "Usuario captura"
+    ];
+
+    const lines = records.map((row) => [
+      sanitizeCsv(row.id),
+      sanitizeCsv(row.date),
+      sanitizeCsv(row.time),
+      sanitizeCsv(row.operator),
+      sanitizeCsv(row.shift),
+      sanitizeCsv(row.activity),
+      row.quantity,
+      sanitizeCsv(row.observations),
+      sanitizeCsv(row.captureUser)
+    ]);
+
+    downloadCsvFile(headers, lines, `produccion_dia_${matchedDate}.csv`);
+    setFormMessage(`CSV diario generado correctamente (${matchedDate}).`, "success");
+  } catch (error) {
+    console.error(error);
+
+    const exportedLocal = exportCsvFromLocalRecords(true);
+    if (exportedLocal) {
+      setFormMessage("No se pudo consultar el dia en servidor. Se descargo CSV local de respaldo.", "error");
+      return;
+    }
+
+    setFormMessage("No se pudo descargar el CSV diario.", "error");
+  } finally {
+    DOM.downloadCsvButton.disabled = false;
+  }
+}
+
+function downloadCsvFile(headers, lines, fileName) {
   const csv = [headers.join(","), ...lines.map((line) => line.join(","))].join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = `produccion_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = fileName;
   a.click();
 
   URL.revokeObjectURL(url);
-  setFormMessage("Archivo CSV generado correctamente.", "success");
 }
 
 function sanitizeCsv(value) {
