@@ -42,7 +42,7 @@
             Captura Operativa
           </button>
           <button id="tabDashboard" class="tab-button" role="tab" aria-selected="false">
-            Dashboard SIPM
+            Dashboards
           </button>
         </nav>
 
@@ -59,10 +59,6 @@
                   Operador
                   <select id="operator" required>
                     <option value="">Selecciona un operador</option>
-                    <option value="Fernando">Fernando</option>
-                    <option value="Oscar">Oscar</option>
-                    <option value="Rogelio">Rogelio</option>
-                    <option value="Juan">Juan</option>
                   </select>
                 </label>
 
@@ -70,7 +66,7 @@
                   Turno
                   <select id="shift" required>
                     <option value="">Selecciona un turno</option>
-                    <option value="Matutino">Matutino</option>
+                    <option value="Matutino" selected>Matutino</option>
                     <option value="Vespertino">Vespertino</option>
                     <option value="Nocturno">Nocturno</option>
                   </select>
@@ -85,7 +81,7 @@
 
                 <label>
                   Cantidad de cilindros
-                  <input id="quantity" type="number" min="1" step="1" placeholder="Ejemplo: 12" required />
+                  <input id="quantity" type="number" min="1" step="1" inputmode="numeric" pattern="[0-9]*" placeholder="Ejemplo: 100" required />
                 </label>
 
                 <label class="full-width">
@@ -131,17 +127,29 @@
               <div class="kpi-card highlight">
                 <p>Produccion del Dia</p>
                 <h3 id="kpiTotalDay">0</h3>
-                <small>cilindros procesados</small>
+                <small>Actividades realizadas</small>
+              </div>
+              <div class="kpi-card balance-highlight">
+                <p>Backlog</p>
+                <h3 id="kpiBalanceDay">0</h3>
+                <small>Cilindros pendientes del Día</small>
               </div>
               <div class="kpi-card month-highlight">
-                <p>Acumulado Mensual</p>
+                <p>Actividades realizadas del Mes</p>
                 <h3 id="kpiTotalMonth">0</h3>
                 <small id="kpiMonthLabel">Periodo --</small>
               </div>
-              <div class="kpi-card balance-highlight">
-                <p>Saldo del Dia</p>
-                <h3 id="kpiBalanceDay">0</h3>
-                <small>cierre con arrastre diario</small>
+              <div class="kpi-card flow-highlight">
+                <p>Flujo Mensual de Cilindros</p>
+                <div class="kpi-dual-row">
+                  <span>Recepcion</span>
+                  <strong id="kpiMonthReception">0</strong>
+                </div>
+                <div class="kpi-dual-row">
+                  <span>Entregados</span>
+                  <strong id="kpiMonthDelivered">0</strong>
+                </div>
+                <small id="kpiFlowMonthLabel">Periodo --</small>
               </div>
             </div>
 

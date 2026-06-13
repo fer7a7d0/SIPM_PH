@@ -8,7 +8,7 @@
 */
 
 // Reemplazar con la URL del despliegue de Apps Script (Web App).
-const API_BASE_URL = "https://script.google.com/macros/s/AKfycbzcQrhpGk9M0NKrObPoNZWDPIW9SZirvDTh6GxkrG2lxEJ0lcGu4iUe6vH82GsVDFrb/exec";
+const API_BASE_URL = "https://script.google.com/macros/s/AKfycbzyF8JfqtjwSO8cgSMoYOJPRbgvoDPO7X-0pFq_Lj6mlrOKA6sIV6mRcWIpycj0i2ia/exec";
 
 const APP_STATE = {
   operators: [],
@@ -27,6 +27,8 @@ const APP_STATE = {
     totalMonth: 0,
     totalDay: 0,
     balanceDay: 0,
+    monthlyReception: 0,
+    monthlyDelivered: 0,
     byActivityMonth: {},
     byShiftMonth: {},
     byOperatorMonth: [],
@@ -59,7 +61,10 @@ const DOM = {
   kpiTotalDay: document.getElementById("kpiTotalDay"),
   kpiTotalMonth: document.getElementById("kpiTotalMonth"),
   kpiBalanceDay: document.getElementById("kpiBalanceDay"),
+  kpiMonthReception: document.getElementById("kpiMonthReception"),
+  kpiMonthDelivered: document.getElementById("kpiMonthDelivered"),
   kpiMonthLabel: document.getElementById("kpiMonthLabel"),
+  kpiFlowMonthLabel: document.getElementById("kpiFlowMonthLabel"),
   activityListDay: document.getElementById("activityListDay"),
   shiftListDay: document.getElementById("shiftListDay"),
   operatorTableBodyDay: document.getElementById("operatorTableBodyDay"),
@@ -190,6 +195,8 @@ async function onSubmitProduction(event) {
   event.preventDefault();
 
   const payload = buildPayloadFromForm();
+  const selectedOperator = payload.operator;
+  const selectedCaptureUser = payload.captureUser;
   const validation = validatePayload(payload);
 
   if (!validation.ok) {
@@ -219,6 +226,9 @@ async function onSubmitProduction(event) {
 
     setFormMessage("Registro guardado correctamente", "success");
     DOM.productionForm.reset();
+    DOM.operatorSelect.value = selectedOperator;
+    DOM.captureUserInput.value = selectedCaptureUser;
+    DOM.activitySelect.focus();
   } catch (error) {
     console.error(error);
     // Si el servidor falla, liberamos la llave local para que el usuario pueda reintentar.
@@ -313,6 +323,8 @@ async function loadDashboard() {
     APP_STATE.dashboard.byOperatorMonth = data.byOperatorMonth || [];
     APP_STATE.dashboard.totalDay = data.totalDay || 0;
     APP_STATE.dashboard.balanceDay = data.balanceDay || 0;
+    APP_STATE.dashboard.monthlyReception = data.monthlyReception || 0;
+    APP_STATE.dashboard.monthlyDelivered = data.monthlyDelivered || 0;
     APP_STATE.dashboard.byActivity = data.byActivity || {};
     APP_STATE.dashboard.byShift = data.byShift || {};
     APP_STATE.dashboard.byOperator = data.byOperator || [];
@@ -330,7 +342,12 @@ function renderDashboard() {
   DOM.kpiTotalDay.textContent = String(APP_STATE.dashboard.totalDay);
   DOM.kpiTotalMonth.textContent = String(APP_STATE.dashboard.totalMonth);
   DOM.kpiBalanceDay.textContent = String(APP_STATE.dashboard.balanceDay);
+  DOM.kpiMonthReception.textContent = String(APP_STATE.dashboard.monthlyReception);
+  DOM.kpiMonthDelivered.textContent = String(APP_STATE.dashboard.monthlyDelivered);
   DOM.kpiMonthLabel.textContent = APP_STATE.dashboard.monthKey
+    ? `Periodo ${APP_STATE.dashboard.monthKey}`
+    : "Periodo --";
+  DOM.kpiFlowMonthLabel.textContent = APP_STATE.dashboard.monthKey
     ? `Periodo ${APP_STATE.dashboard.monthKey}`
     : "Periodo --";
 

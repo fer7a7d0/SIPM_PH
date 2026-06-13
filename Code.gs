@@ -231,7 +231,6 @@ function seedDefaultActivitiesIfEmpty() {
 }
 
 function seedDefaultConfigIfMissing(configSheet) {
-  const existing = getConfigMap();
   const defaults = [
     ['APP_NOMBRE', 'Control de Produccion Taller', 'Nombre visible del sistema', 'SI'],
     ['EMPRESA_NOMBRE', 'Taller de Cilindros', 'Razon social u operativa', 'SI'],
@@ -242,13 +241,87 @@ function seedDefaultConfigIfMissing(configSheet) {
     ['VERSION_APP', '1.0.0', 'Version actual de la solucion', 'SI']
   ];
 
-  const rowsToAppend = defaults.filter(function (row) {
-    return !existing[row[0]];
+  const existingByKey = {};
+  const duplicateRows = [];
+  const lastRow = configSheet.getLastRow();
+
+  if (lastRow > 1) {
+    const existingRows = configSheet.getRange(2, 1, lastRow - 1, 4).getValues();
+    existingRows.forEach(function (row, index) {
+      const key = normalizeConfigKey(row[0]);
+      if (!key) {
+        return;
+      }
+
+      const rowNumber = index + 2;
+      if (!existingByKey[key]) {
+        existingByKey[key] = { rowNumber: rowNumber, values: row.slice() };
+        return;
+      }
+
+      // Conserva la primera fila por clave y usa las siguientes solo para completar vacios.
+      const keeper = existingByKey[key];
+      const merged = [
+        String(keeper.values[0] || '').trim() || String(row[0] || '').trim(),
+        String(keeper.values[1] || '').trim() || String(row[1] || '').trim(),
+        String(keeper.values[2] || '').trim() || String(row[2] || '').trim(),
+        String(keeper.values[3] || '').trim() || String(row[3] || '').trim()
+      ];
+
+      const changed = merged.some(function (value, idx) {
+        return String(value) !== String(keeper.values[idx] || '');
+      });
+
+      if (changed) {
+        configSheet.getRange(keeper.rowNumber, 1, 1, 4).setValues([merged]);
+        keeper.values = merged;
+      }
+
+      duplicateRows.push(rowNumber);
+    });
+  }
+
+  if (duplicateRows.length > 0) {
+    duplicateRows
+      .sort(function (a, b) { return b - a; })
+      .forEach(function (rowNumber) {
+        configSheet.deleteRow(rowNumber);
+      });
+  }
+
+  const rowsToAppend = [];
+  defaults.forEach(function (row) {
+    const key = normalizeConfigKey(row[0]);
+    const existing = existingByKey[key];
+
+    if (!existing) {
+      rowsToAppend.push(row);
+      return;
+    }
+
+    const patched = [
+      String(existing.values[0] || '').trim() || row[0],
+      String(existing.values[1] || '').trim() || row[1],
+      String(existing.values[2] || '').trim() || row[2],
+      String(existing.values[3] || '').trim() || row[3]
+    ];
+
+    const changed = patched.some(function (value, idx) {
+      return String(value) !== String(existing.values[idx] || '');
+    });
+
+    if (changed) {
+      configSheet.getRange(existing.rowNumber, 1, 1, 4).setValues([patched]);
+    }
   });
 
   if (rowsToAppend.length > 0) {
     configSheet.getRange(configSheet.getLastRow() + 1, 1, rowsToAppend.length, rowsToAppend[0].length).setValues(rowsToAppend);
   }
+}
+
+function normalizeConfigKey(value) {
+  return String(value || '').trim().toUpperCase();
 }
 
 function getInitialData() {
@@ -414,6 +487,8 @@ function getDailyDashboard(requestedMonthKey) {
       totalMonth: 0,
       totalDay: 0,
       balanceDay: inventoryBase,
+      monthlyReception: 0,
+      monthlyDelivered: 0,
       byActivityMonth: byActivityMonth,
       byShiftMonth: byShiftMonth,
       byOperatorMonth: [],
@@ -426,6 +501,8 @@ function getDailyDashboard(requestedMonthKey) {
   const data = sheet.getRange(2, 1, lastRow - 1, 13).getValues();
   let totalMonth = 0;
   let totalDay = 0;
+  let monthlyReception = 0;
+  let monthlyDelivered = 0;
 
   data.forEach(function (row) {
     const rowDateKey = normalizeDateKeyFromRow(row, timezone);
@@ -450,8 +527,15 @@ function getDailyDashboard(requestedMonthKey) {
       const monthShift = String(row[4] || '');
       const monthActivity = activity;
       const monthQty = qty;
+      const normalizedMonthActivity = normalizeActivityName(monthActivity);
 
       totalMonth += monthQty;
+
+      if (normalizedMonthActivity === 'recepcion de cilindros') {
+        monthlyReception += monthQty;
+      } else if (normalizedMonthActivity === 'entrega de cilindros') {
+        monthlyDelivered += monthQty;
+      }
 
       if (byActivityMonth[monthActivity] !== undefined) {
         byActivityMonth[monthActivity] += monthQty;
@@ -528,6 +612,8 @@ function getDailyDashboard(requestedMonthKey) {
     totalMonth: totalMonth,
     totalDay: totalDay,
     balanceDay: balanceDay,
+    monthlyReception: monthlyReception,
+    monthlyDelivered: monthlyDelivered,
     byActivityMonth: byActivityMonth,
     byShiftMonth: byShiftMonth,
     byOperatorMonth: byOperatorMonth,

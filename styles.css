@@ -264,7 +264,7 @@ textarea:focus {
   margin-top: 14px;
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .kpi-card {
@@ -286,6 +286,23 @@ textarea:focus {
 .kpi-card.balance-highlight {
   background: #fff7e8;
   border-left-color: #d97706;
+}
+
+.kpi-card.flow-highlight {
+  background: #edf8ff;
+  border-left-color: #0ea5e9;
+}
+
+.kpi-dual-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.kpi-dual-row strong {
+  font-size: 1.15rem;
 }
 
 .section-title {
