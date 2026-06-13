@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light dark;
   --color-bg-1: #f0f4f8;
   --color-bg-2: #d9e2ec;
   --color-panel: #ffffff;
@@ -396,6 +397,120 @@ thead th {
 
 .stat-card-month thead th {
   background: #e1ebff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-1: #0b1220;
+    --color-bg-2: #111b2e;
+    --color-panel: #0f1728;
+    --color-primary: #30b37f;
+    --color-primary-dark: #249063;
+    --color-text: #e5edf7;
+    --color-muted: #9fb1c9;
+    --color-danger: #ff8a80;
+    --color-success: #6be6a8;
+    --shadow-main: 0 12px 30px rgba(0, 0, 0, 0.38);
+  }
+
+  body {
+    background:
+      radial-gradient(circle at 10% 20%, rgba(48, 179, 127, 0.18), transparent 34%),
+      radial-gradient(circle at 80% 10%, rgba(14, 165, 233, 0.16), transparent 30%),
+      linear-gradient(145deg, var(--color-bg-1), var(--color-bg-2));
+  }
+
+  .app-header {
+    background: linear-gradient(120deg, #0d1b33, #0f2b2c);
+  }
+
+  .tab-button {
+    background: #152033;
+    color: #d8e3f1;
+  }
+
+  input,
+  select,
+  textarea,
+  .month-filter-input {
+    background: #111c2e;
+    border-color: #2a3d5f;
+    color: #e5edf7;
+  }
+
+  .btn-secondary {
+    background: #1d3350;
+  }
+
+  .btn-secondary:hover {
+    background: #27476e;
+  }
+
+  .kpi-card {
+    background: #10312b;
+  }
+
+  .kpi-card.month-highlight {
+    background: #15253f;
+    border-left-color: #4a89ff;
+  }
+
+  .kpi-card.balance-highlight {
+    background: #3b2a12;
+    border-left-color: #f4a63c;
+  }
+
+  .kpi-card.flow-highlight {
+    background: #123043;
+    border-left-color: #38bdf8;
+  }
+
+  .section-title {
+    color: #b9c8da;
+  }
+
+  .section-title-day {
+    background: #10312b;
+    color: #6be6a8;
+  }
+
+  .section-title-month {
+    background: #15253f;
+    color: #84b2ff;
+  }
+
+  .stat-card {
+    background: #121f33;
+    border-color: #2a3d5f;
+  }
+
+  .stat-card-day {
+    background: #132b26;
+    border-color: #2f6758;
+  }
+
+  .stat-card-month {
+    background: #16243f;
+    border-color: #3a5e9a;
+  }
+
+  .stat-list li,
+  th,
+  td {
+    border-bottom-color: #2a3d5f;
+  }
+
+  thead th {
+    background: #1a2a45;
+  }
+
+  .stat-card-day thead th {
+    background: #1d3b34;
+  }
+
+  .stat-card-month thead th {
+    background: #1f3254;
+  }
 }
 
 @keyframes reveal {
