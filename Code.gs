@@ -531,9 +531,9 @@ function getDailyDashboard(requestedMonthKey) {
 
       totalMonth += monthQty;
 
-      if (normalizedMonthActivity === 'recepcion de cilindros') {
+      if (normalizedMonthActivity === '01 recepcion de cilindros') {
         monthlyReception += monthQty;
-      } else if (normalizedMonthActivity === 'entrega de cilindros') {
+      } else if (normalizedMonthActivity === '11 entrega de cilindros (cilindros terminados)') {
         monthlyDelivered += monthQty;
       }
 
