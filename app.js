@@ -8,7 +8,7 @@
 */
 
 // Reemplazar con la URL del despliegue de Apps Script (Web App).
-const API_BASE_URL = "https://script.google.com/macros/s/AKfycbxRtE9xjOnIjt8ft6JGRHmCMS64Xd8eAt8_IRADwkim4l0ymMKUcU7Krwh60n8e0cHr/exec";
+const API_BASE_URL = "https://script.google.com/macros/s/AKfycby2MBuLuEYYtCfpI8SP498Lvs4GLWz_G-rrpGQIVLuCkqpAKoqSx4mGU87I2hZFOpvG/exec";
 
 const APP_STATE = {
   operators: [],

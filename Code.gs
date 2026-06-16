@@ -515,9 +515,9 @@ function getDailyDashboard(requestedMonthKey) {
       }
 
       const normalizedActivity = normalizeActivityName(activity);
-      if (normalizedActivity === 'recepcion de cilindros') {
+      if (normalizedActivity === '01 recepcion de cilindros') {
         netByDate[rowDateKey] += qty;
-      } else if (normalizedActivity === 'entrega de cilindros') {
+      } else if (normalizedActivity === '11 entrega de cilindros (cilindros terminados)') {
         netByDate[rowDateKey] -= qty;
       }
     }
